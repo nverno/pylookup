@@ -150,9 +150,10 @@
 
   (split-string
    (with-output-to-string
-     (call-process pylookup-program nil standard-output nil 
-           "-d" (expand-file-name pylookup-db-file)
-           "-c"))))
+     (call-process "python" nil standard-output nil
+                   pylookup-program
+                   "-d" (expand-file-name pylookup-db-file)
+                   "-c"))))
 
 (defun pylookup-exec-lookup (search-term)
   "Runs a pylookup process and returns a list of (term, url) pairs."
@@ -161,11 +162,12 @@
    (lambda (x) (split-string x ";"))
    (split-string
      (with-output-to-string
-         (apply 'call-process pylookup-program nil standard-output nil
-                "-d" (expand-file-name pylookup-db-file)
-                "-l" search-term
-                "-f" "Emacs"
-                pylookup-search-options))
+       (apply 'call-process "python" nil standard-output nil
+              pylookup-program
+              "-d" (expand-file-name pylookup-db-file)
+              "-l" search-term
+              "-f" "Emacs"
+              pylookup-search-options))
      "\n" t)))
 
 ;;=================================================================
@@ -235,7 +237,7 @@
                 (setq module (concat module " " (car iter)))
                 (setq iter (cdr iter)))
 
-              (incf index)
+              (cl-incf index)
               (insert (format " %03d) %-25s %-30s %10s" 
                   index 
                   (pylookup-trim api 25)
@@ -248,7 +250,7 @@
             (insert "\n"))
 
          ;; goto first entry
-         (goto-line 3)
+         (forward-line 3)
 
          ;; turn mode on
          (pylookup-mode)
@@ -293,12 +295,13 @@
   
   ;; pylookup.py -d /home/myuser/.pylookup/pylookup.db -l <URL>
   (message (with-output-to-string
-             (call-process pylookup-program nil standard-output nil
-                  "-u" src
-                  "-d" (expand-file-name pylookup-db-file)
-                  (if append
-                      "-a"
-                    "")))))
+             (call-process "python" nil standard-output nil
+                           pylookup-program
+                           "-u" src
+                           "-d" (expand-file-name pylookup-db-file)
+                           (if append
+                               "-a"
+                             "")))))
 
 ;;;###autoload
 (defun pylookup-update-all ()

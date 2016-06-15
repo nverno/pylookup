@@ -5,7 +5,7 @@ URL ?= http://docs.python.org/2/archives/${ZIP}
 URL2 ?= http://docs.python.org/3/archives/${ZIP}
 
 ifneq (2,${MAJOR_VERSION})
-	URL := ${URL2}
+	URL ?= ${URL2}
 endif
 
 download:
@@ -15,5 +15,9 @@ download:
 		unzip ${ZIP};              \
 	fi
 	./pylookup.py -u $(ZIP:.zip=)
+	$(RM) *.zip
 
-.PHONY: download
+.PHONY: download clean
+clean:
+	$(RM) -rf *html *.zip *.elc *autoloads.el *.db
+

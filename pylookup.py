@@ -12,7 +12,7 @@ Blais.
 """
 
 from __future__ import with_statement
-
+import platform
 import os
 import sys
 import re
@@ -26,38 +26,44 @@ from os.path import join, dirname, exists, abspath, expanduser
 from contextlib import closing
 
 if sys.version_info[0] == 3:
-    import html.parser    as htmllib
-    import urllib.parse   as urlparse
+    import html.parser as htmllib
+    import urllib.parse as urlparse
     import urllib.request as urllib
 else:
-    import htmllib, urllib, urlparse
+    import htmllib
+    import urllib
+    import urlparse
 
 VERBOSE = False
 FORMATS = {
-             "Emacs" : "{entry}\t({desc})\t[{book}];{url}",
-             "Terminal" : "{entry}\t({desc})\t[{book}]\n{url}"
-           }
+    "Emacs": "{entry}\t({desc})\t[{book}];{url}",
+    "Terminal": "{entry}\t({desc})\t[{book}]\n{url}"
+}
+
 
 def build_book(s, num):
     """
     Build book identifier from `s`, with `num` links.
     """
     for matcher, replacement in (("library", "lib"),
-                                ("c-api", "api"),
-                                ("reference", "ref"),
-                                ("", "etc")):
+                                 ("c-api", "api"),
+                                 ("reference", "ref"),
+                                 ("", "etc")):
         if matcher in s:
             return replacement if num == 1 else "%s/%d" % (replacement, num)
+
 
 def trim(s):
     """
     Add any globle filtering rules here
     """
-    s = s.replace( "Python Enhancement Proposals!", "")
-    s = s.replace( "PEP ", "PEP-")
+    s = s.replace("Python Enhancement Proposals!", "")
+    s = s.replace("PEP ", "PEP-")
     return s
 
+
 class Element(object):
+
     def __init__(self, entry, desc, book, url):
         self.book = book
         self.url = url
@@ -120,73 +126,74 @@ def get_matcher(insensitive=True, desc=True):
     return getattr(Element, "match{0}{1}".format(_in_entry, _sensitive))
 
 
-class IndexProcessor( htmllib.HTMLParser ):
+class IndexProcessor(htmllib.HTMLParser):
     """
     Extract the index links from a Python HTML documentation index.
     """
 
-    def __init__( self, writer, dirn):
-        htmllib.HTMLParser.__init__( self, formatter.NullFormatter() )
+    def __init__(self, writer, dirn):
+        htmllib.HTMLParser.__init__(self, formatter.NullFormatter())
 
-        self.writer     = writer
-        self.dirn       = dirn
-        self.entry      = ""
-        self.desc       = ""
+        self.writer = writer
+        self.dirn = dirn
+        self.entry = ""
+        self.desc = ""
         self.list_entry = False
-        self.do_entry   = False
-        self.one_entry  = False
-        self.num_of_a   = 0
-        self.desc_cnt   = 0
+        self.do_entry = False
+        self.one_entry = False
+        self.num_of_a = 0
+        self.desc_cnt = 0
 
-    def start_dd( self, att ):
+    def start_dd(self, att):
         self.list_entry = True
 
-    def end_dd( self ):
+    def end_dd(self):
         self.list_entry = False
 
-    def start_dt( self, att ):
+    def start_dt(self, att):
         self.one_entry = True
-        self.num_of_a  = 0
+        self.num_of_a = 0
 
-    def end_dt( self ):
+    def end_dt(self):
         self.do_entry = False
 
-    def start_a( self, att ):
+    def start_a(self, att):
         if self.one_entry:
-            self.url = join( self.dirn, dict( att )[ 'href' ] )
+            self.url = join(self.dirn, dict(att)['href'])
             self.save_bgn()
 
-    def end_a( self ):
+    def end_a(self):
         global VERBOSE
         if self.one_entry:
-            if self.num_of_a == 0 :
+            if self.num_of_a == 0:
                 self.desc = self.save_end()
 
                 if VERBOSE:
                     self.desc_cnt += 1
                     if self.desc_cnt % 100 == 0:
-                        sys.stdout.write("%04d %s\r" \
-                                             % (self.desc_cnt, self.desc.ljust(80)))
+                        sys.stdout.write("%04d %s\r"
+                                         % (self.desc_cnt, self.desc.ljust(80)))
 
                 # extract fist element
                 #  ex) __and__() (in module operator)
-                if not self.list_entry :
-                    self.entry = re.sub( "\([^)]+\)", "", self.desc )
+                if not self.list_entry:
+                    self.entry = re.sub("\([^)]+\)", "", self.desc)
 
                     # clean up PEP
                     self.entry = trim(self.entry)
 
-                    match = re.search( "\([^)]+\)", self.desc )
-                    if match :
+                    match = re.search("\([^)]+\)", self.desc)
+                    if match:
                         self.desc = match.group(0)
 
-                self.desc = trim(re.sub( "[()]", "", self.desc ))
+                self.desc = trim(re.sub("[()]", "", self.desc))
 
             self.num_of_a += 1
             book = build_book(self.url, self.num_of_a)
             e = Element(self.entry, self.desc, book, self.url)
 
             self.writer(e)
+
 
 def update(db, urls, append=False):
     """Update database with entries from urls.
@@ -202,11 +209,14 @@ def update(db, urls, append=False):
             # detech 'file' or 'url' schemes
             parsed = urlparse.urlparse(url)
             if not parsed.scheme or parsed.scheme == "file":
-                dst = abspath(expanduser(parsed.path))
+                dst = abspath(expanduser(parsed.path)).replace("\\", "/")
                 if not os.path.exists(dst):
                     print("Error: %s doesn't exist" % dst)
                     exit(1)
-                url = "file://%s" % dst
+                if platform.system() == "Windows":
+                    url = "file:///%s" % dst
+                else:
+                    url = "file://%s" % dst
             else:
                 url = parsed.geturl()
 
@@ -231,7 +241,9 @@ def update(db, urls, append=False):
                     if not issubclass(type(index), str):
                         index = index.decode()
 
-                    parser = IndexProcessor(writer, dirname(index_url))
+                    parser = IndexProcessor(writer,
+                                            dirname(index_url).
+                                            replace("\\", "/"))
                     with closing(parser):
                         parser.feed(index)
 
@@ -266,6 +278,7 @@ def lookup(db, key, format_spec, out=sys.stdout, insensitive=True, desc=True):
         except EOFError:
             pass
 
+
 def cache(db, out=sys.stdout):
     """Print unique entries from db to out.
 
@@ -278,8 +291,8 @@ def cache(db, out=sys.stdout):
             while True:
                 e = pickle.load(f)
                 k = e.entry
-                k = re.sub( "\([^)]*\)", "", k )
-                k = re.sub( "\[[^]]*\]", "", k )
+                k = re.sub("\([^)]*\)", "", k)
+                k = re.sub("\[[^]]*\]", "", k)
                 keys.add(k)
         except EOFError:
             pass
@@ -288,36 +301,36 @@ def cache(db, out=sys.stdout):
 
 if __name__ == "__main__":
     import optparse
-    parser = optparse.OptionParser( __doc__.strip() )
-    parser.add_option( "-d", "--db",
-                       help="database name",
-                       dest="db", default="pylookup.db" )
-    parser.add_option( "-l", "--lookup",
-                       help="keyword to search",
-                       dest="key" )
-    parser.add_option( "-u", "--update",
-                       help="update url or path",
-                       action="append", type="str", dest="url" )
-    parser.add_option( "-c", "--cache" ,
-                       help="extract keywords, internally used",
-                       action="store_true", default=False, dest="cache")
-    parser.add_option( "-a", "--append",
-                       help="append to the db from multiple sources",
-                       action="store_true", default=False, dest="append")
-    parser.add_option( "-f", "--format",
-                       help="type of output formatting, valid: Emacs, Terminal",
-                       choices=["Emacs", "Terminal"],
-                       default="Terminal", dest="format")
-    parser.add_option( "-i", "--insensitive", default=1, choices=['0', '1'],
-                       help="SEARCH OPTION: insensitive search "
-                       "(valid: 0, 1; default: %default)")
-    parser.add_option( "-s", "--desc", default=1, choices=['0', '1'],
-                       help="SEARCH OPTION: include description field "
-                       "(valid: 0, 1; default: %default)")
+    parser = optparse.OptionParser(__doc__.strip())
+    parser.add_option("-d", "--db",
+                      help="database name",
+                      dest="db", default="pylookup.db")
+    parser.add_option("-l", "--lookup",
+                      help="keyword to search",
+                      dest="key")
+    parser.add_option("-u", "--update",
+                      help="update url or path",
+                      action="append", type="str", dest="url")
+    parser.add_option("-c", "--cache",
+                      help="extract keywords, internally used",
+                      action="store_true", default=False, dest="cache")
+    parser.add_option("-a", "--append",
+                      help="append to the db from multiple sources",
+                      action="store_true", default=False, dest="append")
+    parser.add_option("-f", "--format",
+                      help="type of output formatting, valid: Emacs, Terminal",
+                      choices=["Emacs", "Terminal"],
+                      default="Terminal", dest="format")
+    parser.add_option("-i", "--insensitive", default=1, choices=['0', '1'],
+                      help="SEARCH OPTION: insensitive search "
+                      "(valid: 0, 1; default: %default)")
+    parser.add_option("-s", "--desc", default=1, choices=['0', '1'],
+                      help="SEARCH OPTION: include description field "
+                      "(valid: 0, 1; default: %default)")
     parser.add_option("-v", "--verbose",
                       help="verbose", action="store_true",
                       dest="verbose", default=False)
-    ( opts, args ) = parser.parse_args()
+    (opts, args) = parser.parse_args()
 
     VERBOSE = opts.verbose
     if opts.url:
