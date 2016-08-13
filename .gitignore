@@ -3,4 +3,6 @@
 /*.zip
 *.db
 python-*-docs-html
-pylookup-autoloads.el  
+*autoloads.el
+*loaddefs.el
+*.html
