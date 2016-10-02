@@ -19,36 +19,8 @@ ifneq (2,${MAJOR_VERSION})
   url ?= ${url2}
 endif
 
-elpa_dir ?= ~/.emacs.d/elpa
-auto ?= pylookup-autoloads.el
-
-el = $(filter-out $(auto),$(wildcard *.el))
-elc = $(el:.el=.elc)
-
-batch_flags = -batch \
-	--eval "(let ((default-directory                   \
-                      (expand-file-name \"$(elpa_dir)\"))) \
-                  (normal-top-level-add-subdirs-to-load-path))"
-
-auto_flags ?= \
-	--eval "(let ((generated-autoload-file                       \
-                      (expand-file-name (unmsys--file-name \"$@\"))) \
-                      (wd (expand-file-name default-directory))      \
-                      (backup-inhibited t)                           \
-                      (default-directory                             \
-	                (expand-file-name \"$(elpa_dir)\")))         \
-                   (normal-top-level-add-subdirs-to-load-path)       \
-                   (update-directory-autoloads wd))"
-
-.PHONY: $(auto) clean distclean
-all: download compile $(auto)
-
-compile : $(elc)
-%.elc : %.el
-	$(emacs) $(batch_flags) -f batch-byte-compile $<
-
-$(auto):
-	$(emacs) -batch $(auto_flags)
+.PHONY: clean distclean
+all: download
 
 download:
 	@if [ ! -d $(html_files) ] ; then  \
@@ -58,11 +30,6 @@ download:
 	fi
 	./pylookup.py -u $(html_files)
 	$(RM) *.zip
-
-TAGS: $(el)
-	$(RM) $@
-	touch $@
-	ls $(el) | xargs etags -a -o $@
 
 clean:
 	$(RM) *.zip *~
