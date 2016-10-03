@@ -28,7 +28,7 @@ download:
 		wget ${url};               \
 		unzip ${zip};              \
 	fi
-	./pylookup.py -u $(html_files)
+	$(python) pylookup.py -u $(html_files)
 	$(RM) *.zip
 
 clean:
