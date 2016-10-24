@@ -3,7 +3,7 @@ wget ?= wget
 python ?= python
 
 ifeq ($(OS), Windows_NT)
-  python="$(shell cygpath -m $(shell where python | grep -Pi anaconda))"
+  python ?= "$(shell cygpath -m $(shell where python | grep -Pi anaconda))"
 endif
 
 VER := $(shell $(python) --version 2>&1 | grep -o "[0-9].[0-9].[0-9]*" | head -n 1)
