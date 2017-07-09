@@ -13,10 +13,13 @@ VER           := $(shell $(python) --version 2>&1 |             \
 MAJOR_VERSION = $(shell $(python) --version 2>&1 |              \
                  grep -Po "(?<=[Pp]ython )[0-9]")
 
+MINOR_VERSION = $(shell $(python) --version 2>&1 |              \
+                 grep -Po "(?<=[Pp]ython [0-9]\\.)[0-9]")
+
 zip           := python-${VER}-docs-html.zip
 html_files    = $(zip:.zip=)
 
-url           ?= http://docs.python.org/${MAJOR_VERSION}/archives/${zip}
+url           ?= http://docs.python.org/${MAJOR_VERSION}.${MINOR_VERSION}/archives/${zip}
 
 .PHONY: clean distclean
 all: download
