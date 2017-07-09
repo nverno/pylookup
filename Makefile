@@ -20,6 +20,10 @@ zip           := python-${VER}-docs-html.zip
 html_files    = $(zip:.zip=)
 
 url           ?= http://docs.python.org/${MAJOR_VERSION}.${MINOR_VERSION}/archives/${zip}
+# python 2
+ifeq (${MAJOR_VERSION},2)
+  url         ?= http://docs.python.org/${MAJOR_VERSION}/archives/${zip}
+endif
 
 .PHONY: clean distclean
 all: download
