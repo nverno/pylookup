@@ -43,7 +43,7 @@
 ;; internal variables
 ;;=================================================================
 
-(defvar pylookup-html-locations '("http://docs.python.org"))
+(defvar pylookup-html-locations '("https://docs.python.org"))
 (defvar pylookup-history nil)
 (defvar pylookup-cache nil)
 (defvar pylookup-return-window-config nil)

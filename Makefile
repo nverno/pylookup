@@ -1,3 +1,4 @@
+SHELL         = /bin/bash
 emacs         ?= emacs
 wget          ?= wget
 python        ?= python
@@ -19,10 +20,10 @@ MINOR_VERSION = $(shell $(python) --version 2>&1 |              \
 zip           := python-${VER}-docs-html.zip
 html_files    = $(zip:.zip=)
 
-url           ?= http://docs.python.org/${MAJOR_VERSION}.${MINOR_VERSION}/archives/${zip}
+url           ?= https://docs.python.org/${MAJOR_VERSION}.${MINOR_VERSION}/archives/${zip}
 # python 2
 ifeq (${MAJOR_VERSION},2)
-  url         ?= http://docs.python.org/${MAJOR_VERSION}/archives/${zip}
+  url         ?= https://docs.python.org/${MAJOR_VERSION}/archives/${zip}
 endif
 
 .PHONY: clean distclean
@@ -32,10 +33,15 @@ download:
 	@if [ ! -d $(html_files) ] ; then                       \
 		echo "Downloading ${url}";                      \
 		wget ${url};                                    \
+		if [ "0" != "$?" ]; then                        \
+			exit 0;                                 \
+		fi;                                             \
 		unzip ${zip};                                   \
+	fi;                                                     \
+	if [ -d $(html_files) ]; then                           \
+		$(python2) pylookup.py -u $(html_files);        \
+		$(RM) *.zip;                                    \
 	fi
-	$(python2) pylookup.py -u $(html_files)
-	$(RM) *.zip
 
 clean:
 	$(RM) *.zip *~
