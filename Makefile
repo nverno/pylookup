@@ -27,21 +27,16 @@ ifeq (${MAJOR_VERSION},2)
 endif
 
 .PHONY: clean distclean
-all: download
+all: ${html_files}
 
-download:
-	@if [ ! -d $(html_files) ] ; then                       \
-		echo "Downloading ${url}";                      \
-		wget ${url};                                    \
-		if [ "0" != "$?" ]; then                        \
-			exit 0;                                 \
-		fi;                                             \
-		unzip ${zip};                                   \
-	fi;                                                     \
-	if [ -d $(html_files) ]; then                           \
-		$(python2) pylookup.py -u $(html_files);        \
-		$(RM) *.zip;                                    \
-	fi
+${html_files}: ${zip}
+	unzip *.zip
+	$(python2) pylookup.py -u $(html_files)
+
+.INTERMEDIATE: ${zip}
+${zip}:
+	@echo "Downloading ${url}"
+	wget ${url}
 
 clean:
 	$(RM) *.zip *~
