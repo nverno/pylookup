@@ -1,45 +1,32 @@
-SHELL         = /bin/bash
-emacs         ?= emacs
-wget          ?= wget
-python        ?= python
-python2       ?= python2
+SHELL   = /bin/bash
+python3 ?= python
+python2 ?= python2
 
-ifeq ($(OS), Windows_NT)
-  python      ?= "$(shell cygpath -m $(shell where python | grep -Pi anaconda))"
-endif
+VER2    := $(shell python2 --version 2>&1 | grep -o "[0-9].[0-9].[0-9]*")
+VER3    := $(shell python3 --version 2>&1 | grep -o "[0-9].[0-9].[0-9]*")
+ZIP2    := python-$(VER2)-docs-html.zip
+ZIP3    := python-$(VER3)-docs-html.zip
+URL2    := https://docs.python.org/2/archives/$(ZIP2)
+URL3    := https://docs.python.org/3/archives/$(ZIP3)
 
-VER           := $(shell $(python) --version 2>&1 |             \
-                 grep -Po "(?<=[Pp]ython )[0-9].[0-9].[0-9]*" | \
-                 head -n 1)
-MAJOR_VERSION = $(shell $(python) --version 2>&1 |              \
-                 grep -Po "(?<=[Pp]ython )[0-9]")
+define download
+	@if [ ! -e $(1) ] ; then         \
+		echo "Downloading $(2)"; \
+		wget $(2);               \
+		unzip $(1);              \
+	fi
+endef
 
-MINOR_VERSION = $(shell $(python) --version 2>&1 |              \
-                 grep -Po "(?<=[Pp]ython [0-9]\\.)[0-9]")
+build:
+	$(call download,$(ZIP2),$(URL2))
+# $(call download,$(ZIP3),$(URL3))
 
-zip           := python-${VER}-docs-html.zip
-html_files    = $(zip:.zip=)
+	./pylookup.py -d pylookup2.db -u $(ZIP2:.zip=)
+# ./pylookup.py -d pylookup3.db -u $(ZIP3:.zip=)
 
-url           ?= https://docs.python.org/${MAJOR_VERSION}.${MINOR_VERSION}/archives/${zip}
-# python 2
-ifeq (${MAJOR_VERSION},2)
-  url         ?= https://docs.python.org/${MAJOR_VERSION}/archives/${zip}
-endif
-
-.PHONY: clean distclean
-all: ${html_files}
-
-${html_files}: ${zip}
-	unzip *.zip
-	$(python2) pylookup.py -u $(html_files)
-
-.INTERMEDIATE: ${zip}
-${zip}:
-	@echo "Downloading ${url}"
-	wget ${url}
-
+.PHONY: download clean distclean
 clean:
-	$(RM) *.zip *~
+	$(RM) *.zip.* *.zip *~
 
 distclean: clean
-	$(RM) -rf *html *autoloads.el *loaddefs.el TAGS *.elc *.db *autoloads.el
+	$(RM) -rf *html *autoloads.el *loaddefs.el TAGS *.elc *.db

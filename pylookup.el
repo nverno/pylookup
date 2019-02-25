@@ -1,6 +1,6 @@
 ;;; pylookup.el --- Look up python documents (reference) in Emacs
 
-;; Copyright (C) 2010-2013 Taesoo Kim
+;; Copyright (C) 2010-2018 Taesoo Kim
 
 ;; Author: Taesoo Kim <taesoo@mit.edu>
 ;; Maintainer: Taesoo Kim <taesoo@mit.edu>
@@ -34,8 +34,18 @@
 ;; user options
 ;;=================================================================
 
-(defvar pylookup-db-file "pylookup.db" "Pylookup database file")
-(defvar pylookup-program "pylookup.py" "Pylookup execution file")
+(defvar pylookup-root (file-name-directory load-file-name))
+(defvar pylookup-db2-file
+  (concat pylookup-root "/pylookup2.db")
+  "Pylookup database file for python2")
+(defvar pylookup-db3-file
+  (concat pylookup-root "/pylookup3.db")
+  "Pylookup database file for python3")
+(defvar pylookup-program
+  (concat pylookup-root "/pylookup.py")
+  "Pylookup execution file")
+(defvar pylookup-db-file pylookup-db3-file
+  "Default database to use, if not matched")
 (defvar pylookup-search-options nil
   "Pylookup search options (see ./pylookup.py -h)")
 
@@ -145,15 +155,28 @@
 ;; execute pylookup
 ;;=================================================================
 
+(defun check-shabang (str)
+  (save-excursion
+    (goto-char (point-min))
+    (not (eq (search-forward str (min 50 (point-max)) t) nil))))
+
+(defun get-pylookup-db-file ()
+  (expand-file-name
+   (if (check-shabang "python2") pylookup-db2-file
+     (if (check-shabang "python3")
+         pylookup-db3-file
+       pylookup-db-file))))
+      
 (defun pylookup-exec-get-cache ()
   "Run a pylookup process and get a list of cache (db key)"
 
   (split-string
    (with-output-to-string
-     (call-process "python" nil standard-output nil
-                   pylookup-program
-                   "-d" (expand-file-name pylookup-db-file)
-                   "-c"))))
+     (call-process pylookup-program nil standard-output nil 
+           "-d" (get-pylookup-db-file)
+           "-c"))))
+
+(setq testme (file-name-directory load-file-name))
 
 (defun pylookup-exec-lookup (search-term)
   "Runs a pylookup process and returns a list of (term, url) pairs."
@@ -162,12 +185,11 @@
    (lambda (x) (split-string x ";"))
    (split-string
      (with-output-to-string
-       (apply 'call-process "python" nil standard-output nil
-              pylookup-program
-              "-d" (expand-file-name pylookup-db-file)
-              "-l" search-term
-              "-f" "Emacs"
-              pylookup-search-options))
+         (apply 'call-process pylookup-program nil standard-output nil
+                "-d" (get-pylookup-db-file)
+                "-l" search-term
+                "-f" "Emacs"
+                pylookup-search-options))
      "\n" t)))
 
 ;;=================================================================
