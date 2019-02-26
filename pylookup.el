@@ -169,14 +169,11 @@
       
 (defun pylookup-exec-get-cache ()
   "Run a pylookup process and get a list of cache (db key)"
-
   (split-string
    (with-output-to-string
      (call-process pylookup-program nil standard-output nil 
            "-d" (get-pylookup-db-file)
            "-c"))))
-
-(setq testme (file-name-directory load-file-name))
 
 (defun pylookup-exec-lookup (search-term)
   "Runs a pylookup process and returns a list of (term, url) pairs."
