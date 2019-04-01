@@ -17,13 +17,13 @@ define download
 	fi
 endef
 
-all: build clean
+all: build
 
 build:
-	$(call download,$(ZIP2),$(URL2))
+	@$(call download,$(ZIP2),$(URL2))
 # $(call download,$(ZIP3),$(URL3))
 
-	./pylookup.py -d pylookup2.db -u $(ZIP2:.zip=)
+	@./pylookup.py -d pylookup2.db -u $(ZIP2:.zip=)
 # ./pylookup.py -d pylookup3.db -u $(ZIP3:.zip=)
 
 .PHONY: download clean distclean
