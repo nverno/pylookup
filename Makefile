@@ -17,6 +17,8 @@ define download
 	fi
 endef
 
+all: build clean
+
 build:
 	$(call download,$(ZIP2),$(URL2))
 # $(call download,$(ZIP3),$(URL3))
