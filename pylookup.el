@@ -27,7 +27,7 @@
 (eval-when-compile
   (require 'browse-url)
   (require 'simple)
-  (require 'cl)
+  (require 'cl-lib)
   (require 'ido))
 
 ;;=================================================================
